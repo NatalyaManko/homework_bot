@@ -1,14 +1,15 @@
-from dotenv import load_dotenv
-import os
-import requests
-from http import HTTPStatus
-import time
-from telegram import Bot
-from exceptions import TokenNotFound, APIError
 import logging
-from logging import StreamHandler
+import os
 import sys
+import time
+from http import HTTPStatus
+from logging import StreamHandler
 
+import requests
+from dotenv import load_dotenv
+from telegram import Bot
+
+from exceptions import APIError, TokenNotFound
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -46,33 +47,26 @@ def check_tokens():
     if not all(all_tokens):
         logging.critical('Токен не найден в виртуальном окружении!')
         raise TokenNotFound('Токен не найден в виртуальном окружении!')
-    else:
-        logging.info('Токены проверены')
-        return True
+    logging.info('Токены проверены')
+    return True
 
 
 def send_message(bot, message):
     """Отправка сообщений в Telegram-чат."""
-    logging.info('Начало от правки сообщения пользователю')
-    try:
-        bot.send_message(TELEGRAM_CHAT_ID, message)
-        logging.debug('Отправлено сообщение пользователю')
-    except Exception as err:
-        logging.error(f'Ошибка отправки сообщения: {err}')
+    logging.info('Начало отправки сообщения пользователю')
+    bot.send_message(TELEGRAM_CHAT_ID, message)
+    logging.debug('Отправлено сообщение пользователю')
 
 
 def get_api_answer(timestamp):
     """Запрос к API."""
     logging.info('Начало запроса к API')
-    headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     paramload = {'from_date': timestamp}
     try:
-        response = requests.get(ENDPOINT, headers=headers, params=paramload)
+        response = requests.get(ENDPOINT, headers=HEADERS, params=paramload)
     except requests.RequestException:
-        logging.error('Общая ошибка запроса к API')
         raise APIError('Кажется, запрос к API кривой(')
     if response.status_code != HTTPStatus.OK:
-        logging.error('Ошибка запроса к API: не верный код ответа')
         raise APIError('Кажется, запрос к API кривой(')
     logging.info('Запрос к API успешен!')
     return response.json()
@@ -82,24 +76,15 @@ def check_response(response):
     """Проверить ответ API."""
     logging.info('Начало проверки ответа API')
     if not isinstance(response, dict):
-        logging.error('Ошибка проверки ответа API')
         raise TypeError('Ответ API не является "dict"')
     if 'homeworks' not in response:
-        logging.error('Ошибка проверки ответа API')
         raise KeyError('Ответ API не содержит список проектов')
     if not isinstance(response.get('homeworks'), list):
-        logging.error('Ошибка проверки ответа API')
         raise TypeError('Список проектов не является "list"')
     for index in range(len(response.get('homeworks'))):
         if 'homework_name' not in response['homeworks'][index]:
-            logging.error(
-                'Ошибка: ожидаемый ключ "homework_name" в ответе отсутствует'
-            )
             raise KeyError('Ответ API не содержит ключ "homework_name"!')
         if 'status' not in response.get('homeworks')[index]:
-            logging.error(
-                'Ошибка: ожидаемый ключ "status" в ответе API отсутствует'
-            )
             raise KeyError('Ответ API не содержит ключ "status"!')
     logging.info('Проверка ответа API прошла успешно!')
     return response
@@ -111,10 +96,8 @@ def parse_status(homework):
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     if not homework_status or not homework_name:
-        logging.error('Ошибка: не найдено имя или статус проекта в ответе API')
         raise KeyError('Не найдено имя или статус проекта в ответе API')
     if homework_status not in HOMEWORK_VERDICTS:
-        logging.error('Ошибка: неожиданный статус проекта в ответе API')
         raise KeyError('Не найден статус последнего проекта')
     verdict = HOMEWORK_VERDICTS[homework_status]
     logging.info('Проверка статуса проекта успешна!')
@@ -135,7 +118,6 @@ def main():
     bot = Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
     last_status = ''
-    last_error = ''
 
     while True:
         try:
@@ -147,9 +129,10 @@ def main():
             if last_status == last_hwork.get('status'):
                 message = 'Статус проекта не поменялся'
                 logging.info(message)
-            send_message(bot, message)
-            last_status = last_hwork.get('status')
-            last_error = ''
+            try:
+                send_message(bot, message)
+            except Exception as err:
+                logging.error(f'Ошибка отправки сообщения: {err}')
         except IndexError:
             message = 'Статус проекта не поменялся'
             send_message(bot, message)
@@ -158,9 +141,9 @@ def main():
         except Exception as err:
             msg_error = f'Сбой в работе программы: {err}'
             logging.error(msg_error)
-            if str(msg_error) != str(last_error):
+            if str(msg_error) != str(last_status):
                 send_message(bot, msg_error)
-
+            last_status = msg_error
         finally:
             time.sleep(RETRY_PERIOD)
 
