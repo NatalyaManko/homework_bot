@@ -1,6 +1,6 @@
 ## Python Telegram bot
 
-![alt text](https://static.tildacdn.com/tild3634-6439-4366-a165-643565316462/-/resize/504x/scale_1200.png)
+![alt text](https://1.bp.blogspot.com/-t0l-JvDLuvk/XXs0QOfsFwI/AAAAAAAAHLs/IfD1Htm7fjgwb8o_Pz9mdYiAuzdOg4iBQCPcBGAYYCw/s1600/telegram.cs.png)
 
 ### Описание проекта
 Этот проект представляет собой бота, который выполняет следующие функции:
@@ -75,6 +75,7 @@ pip install -r requirements.txt
 bash
 
 #### Использованные технологии:
+```
 aiofiles==23.2.1
 aiogram==3.4.1
 aiohttp==3.9.3
@@ -105,8 +106,10 @@ pyusb==1.2.1
 typing_extensions==4.10.0
 usb==0.0.83.dev0
 yarl==1.9.4
-
+```
 **_Контактная информация:_**
+```
 Наталья Манько
 eMail: manko.nat@mail.ru, natalamanko955@gmail.com
 Телефон: +7(913)900-23-23
+```
